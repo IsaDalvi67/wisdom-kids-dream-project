@@ -75,4 +75,54 @@ async function managerApproveDelete(u){
  }catch(e){alert(e.message)}
 }
 if(token)api('staff-me').then(d=>finish({token,username:d.username,role:d.role})).catch(()=>sessionStorage.removeItem('wkdp_staff_token'));
-</script></body></html>
+</script><div id="v9Security" class="hidden" style="position:fixed;right:18px;bottom:18px;z-index:30;background:white;border:1px solid #ddd;border-radius:14px;padding:14px;box-shadow:0 8px 30px #0002"><b>🔐 V9 Security Control</b><div id="v9Mode" style="margin:8px 0">Loading…</div><button class="btn" onclick="v9Set('normal')">NORMAL</button> <button class="btn" onclick="v9Set('recovery')">RECOVERY</button> <button class="btn danger" onclick="v9Set('lockdown')">LOCKDOWN</button></div>
+<script>
+async function v9Load(){if(role!=='manager')return;v9Security.classList.remove('hidden');try{const d=await api('security-state');v9Mode.textContent='Mode: '+String(d.mode||'normal').toUpperCase()}catch(e){v9Mode.textContent=e.message}}
+async function v9Set(mode){const reason=prompt('Reason for '+mode.toUpperCase()+':')||'';if(mode!=='normal'&&!reason)return;if(!confirm('Change security mode to '+mode.toUpperCase()+'?'))return;try{const d=await api('security-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,reason})});v9Mode.textContent='Mode: '+d.mode.toUpperCase()}catch(e){alert(e.message)}}setTimeout(v9Load,700);
+</script>
+<script src="recovery-vault-config.js"></script>
+
+<div id="v10RecoveryVault" style="display:none; position:fixed; right:18px; bottom:18px; z-index:9998; width:min(390px,calc(100vw - 36px)); background:#fff; color:#17212b; border:1px solid #d8dee4; border-radius:16px; padding:16px; box-shadow:0 12px 35px rgba(0,0,0,.18)">
+  <div style="font-weight:800;font-size:17px;margin-bottom:6px">V10 Recovery Vault</div>
+  <div style="font-size:13px;line-height:1.45;margin-bottom:12px">External files portal. No files are stored in this WKDP project.</div>
+  <button type="button" id="v10OpenFilesSite" style="width:100%;padding:10px 12px;border:0;border-radius:10px;cursor:pointer;font-weight:700">Open Files</button>
+  <div id="v10FilesHint" style="font-size:12px;margin-top:8px;opacity:.75"></div>
+</div>
+
+
+<script>
+(function () {
+  const box = document.getElementById('v10RecoveryVault');
+  const btn = document.getElementById('v10OpenFilesSite');
+  const hint = document.getElementById('v10FilesHint');
+
+  function filesUrl() {
+    return (window.WKDP_FILES_SITE_URL || 'FILES_SITE_URL').trim();
+  }
+
+  function showVaultFor(role) {
+    const normalized = String(role || '').toLowerCase();
+    if (box) box.style.display = (normalized === 'recovery') ? 'block' : 'none';
+  }
+
+  // Existing authenticated pages can call this after login/me resolves.
+  window.WKDP_V10_SHOW_RECOVERY_VAULT = showVaultFor;
+
+  if (btn) btn.addEventListener('click', function () {
+    const url = filesUrl();
+    if (!url || url === 'FILES_SITE_URL') {
+      if (hint) hint.textContent = 'Files website has not been linked yet. Set it in recovery-vault-config.js.';
+      return;
+    }
+    try {
+      const parsed = new URL(url, window.location.href);
+      if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
+      window.open(parsed.href, '_blank', 'noopener,noreferrer');
+    } catch (_) {
+      if (hint) hint.textContent = 'The configured files website URL is invalid.';
+    }
+  });
+})();
+</script>
+
+</body></html>
