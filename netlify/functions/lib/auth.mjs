@@ -23,16 +23,69 @@ export function checkPassword(p,stored){
  try{const[,salt,h]=stored.split("$"),x=crypto.scryptSync(String(p),salt,64);return crypto.timingSafeEqual(x,Buffer.from(h,"hex"))}catch{return false}
 }
 export async function bootstrap(){
- const c=db();await ensureSchema(c);
- const count=Number((await c.execute(`SELECT COUNT(*) n FROM staff_users`)).rows[0].n);
- if(count===0){
-   const now=new Date().toISOString();
-   const mu=process.env.WKDP_MANAGER_USER,mp=process.env.WKDP_MANAGER_PASSWORD,me=process.env.WKDP_MANAGER_EMAIL;
-   if(mu&&mp&&me)await c.execute({sql:`INSERT INTO staff_users(username,email,password_hash,role,created_at,created_by) VALUES(?,?,?,?,?,?)`,args:[mu,me.toLowerCase(),hashPassword(mp),"manager",now,"SYSTEM"]});
-   const au=process.env.WKDP_STAFF_USER,ap=process.env.WKDP_STAFF_PASSWORD,ae=process.env.WKDP_ADMIN_EMAIL;
-   if(au&&ap&&ae)await c.execute({sql:`INSERT OR IGNORE INTO staff_users(username,email,password_hash,role,created_at,created_by) VALUES(?,?,?,?,?,?)`,args:[au,ae.toLowerCase(),hashPassword(ap),"admin",now,"SYSTEM"]});
- }
- return c;
+  const c=await db();
+  await c.execute(`CREATE TABLE IF NOT EXISTS staff_users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('staff','admin','manager')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    created_by TEXT
+  )`);
+  await c.execute(`CREATE TABLE IF NOT EXISTS audit_log(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT,
+    actor_display TEXT,
+    donation_ref TEXT,
+    amount REAL,
+    subject_username TEXT,
+    action TEXT,
+    reason TEXT,
+    details_json TEXT,
+    created_at TEXT NOT NULL
+  )`);
+  await c.execute(`CREATE TABLE IF NOT EXISTS auth_codes(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    purpose TEXT,
+    username TEXT,
+    email TEXT,
+    code_hash TEXT,
+    expires_at TEXT,
+    used INTEGER DEFAULT 0,
+    meta_json TEXT,
+    created_at TEXT
+  )`);
+
+  const countRow = await c.execute(`SELECT COUNT(*) AS n FROM staff_users`);
+  const count = Number(countRow.rows[0]?.n || 0);
+
+  if(count===0){
+    const now=new Date().toISOString();
+
+    const managerUser=String(process.env.WKDP_MANAGER_USER||"").trim();
+    const managerPass=String(process.env.WKDP_MANAGER_PASSWORD||"");
+    if(managerUser && managerPass){
+      await c.execute({
+        sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
+             VALUES(?,?,?,?,1,?,?)`,
+        args:[managerUser,null,hashPassword(managerPass),"manager",now,"SYSTEM"]
+      });
+    }
+
+    const adminUser=String(process.env.WKDP_STAFF_USER||"").trim();
+    const adminPass=String(process.env.WKDP_STAFF_PASSWORD||"");
+    if(adminUser && adminPass){
+      await c.execute({
+        sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
+             VALUES(?,?,?,?,1,?,?)`,
+        args:[adminUser,null,hashPassword(adminPass),"admin",now,"SYSTEM"]
+      });
+    }
+  }
+
+  return c;
 }
 
 export const requireRole=(a,roles)=>a&&roles.includes(a.r);

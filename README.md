@@ -24,3 +24,6 @@ New for V8:
 Keep all secrets in Netlify environment variables, never in GitHub or public HTML.
 
 The first Manager and Admin are bootstrapped only when staff_users is empty. After accounts exist, manage them from /staff.html.
+
+
+Bootstrap fix: the first Manager uses WKDP_MANAGER_USER + WKDP_MANAGER_PASSWORD, and the first Admin uses WKDP_STAFF_USER + WKDP_STAFF_PASSWORD. No email variables are required.
