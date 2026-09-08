@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WKDP V10 Recovery</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#18202a;margin:0}
+main{max-width:850px;margin:45px auto;padding:20px}
+.card{background:#fff;border:1px solid #dde2e7;border-radius:16px;padding:20px;margin:14px 0}
+input,select,button{box-sizing:border-box;padding:10px;margin:5px 0;border:1px solid #cbd3da;border-radius:9px}
+input,select{width:100%} button{cursor:pointer;font-weight:700}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hidden{display:none}
+.account{border-top:1px solid #e6eaee;padding:12px 0}.muted{opacity:.7;font-size:13px}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>V10 Recovery Console</h1>
+<p class="muted">Emergency account recovery. Actions are recorded as SYSTEM in the audit trail.</p>
+
+<section id="login" class="card">
+<h2>Recovery Login</h2>
+<input id="u" autocomplete="username" placeholder="Recovery username">
+<input id="p" type="password" autocomplete="current-password" placeholder="Recovery password">
+<button id="loginBtn">Login</button><div id="loginMsg"></div>
+</section>
+
+<section id="console" class="hidden">
+<div class="card">
+<h2>Files</h2>
+<p>This opens your separate files website. The files themselves are not stored in WKDP.</p>
+<button id="filesBtn">Open Files</button><div id="filesMsg" class="muted"></div>
+</div>
+<div class="card"><h2>Accounts</h2><div id="accounts"></div></div>
+</section>
+</main>
+<script src="recovery-vault-config.js"></script>
+<script>
+let token="";
+const $=id=>document.getElementById(id);
+async function api(path,opt={}){
+ opt.headers={...(opt.headers||{}),...(token?{Authorization:"Bearer "+token}:{})};
+ const r=await fetch("/.netlify/functions/"+path,opt);
+ const j=await r.json().catch(()=>({error:"Invalid server response."}));
+ if(!r.ok) throw new Error(j.error||"Request failed.");
+ return j;
+}
+$("loginBtn").onclick=async()=>{
+ try{
+  const j=await api("recovery-login",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:$("u").value,password:$("p").value})});
+  token=j.token; $("p").value="";
+  $("login").classList.add("hidden"); $("console").classList.remove("hidden");
+  loadAccounts();
+ }catch(e){$("loginMsg").textContent=e.message}
+};
+async function loadAccounts(){
+ try{
+  const j=await api("recovery-account-list");
+  $("accounts").innerHTML="";
+  j.accounts.forEach(a=>{
+   const d=document.createElement("div"); d.className="account";
+   d.innerHTML=`<strong>${esc(a.username)}</strong> — ${esc(a.role)} — ${Number(a.active)?"Active":"Disabled"}
+   <br><button type="button">Edit / Recover</button>`;
+   d.querySelector("button").onclick=()=>edit(a);
+   $("accounts").appendChild(d);
+  });
+ }catch(e){$("accounts").textContent=e.message}
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function edit(a){
+ const username=prompt("Username:",a.username); if(username===null)return;
+ const role=prompt("Role (staff/admin/manager):",a.role); if(role===null)return;
+ const password=prompt("New password (leave blank to keep current):",""); if(password===null)return;
+ const reason=prompt("Reason for recovery edit:","Recovery maintenance"); if(reason===null)return;
+ try{
+  await api("recovery-account-edit",{method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({id:Number(a.id),username,role,password:password||undefined,reason})});
+  await loadAccounts();
+ }catch(e){alert(e.message)}
+}
+$("filesBtn").onclick=()=>{
+ const raw=String(window.WKDP_FILES_SITE_URL||"FILES_SITE_URL").trim();
+ if(!raw||raw==="FILES_SITE_URL"){ $("filesMsg").textContent="Set FILES_SITE_URL in recovery-vault-config.js first."; return; }
+ try{
+  const u=new URL(raw,location.href);
+  if(!/^https?:$/.test(u.protocol))throw 0;
+  window.open(u.href,"_blank","noopener,noreferrer");
+ }catch(e){$("filesMsg").textContent="Invalid files website URL."}
+};
+</script></body></html>
