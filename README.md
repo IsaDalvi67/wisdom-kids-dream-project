@@ -33,3 +33,5 @@ Bootstrap repair: Manager and Admin bootstrap are now checked independently. If 
 Login fix 8.0.4: bootstrap accounts use internal .invalid placeholder emails because the existing Turso staff_users schema requires a non-null unique email. No email verification is used.
 
 V8.0.5 UI bugfix: donor Check Status results are now visibly rendered in the white status card. The staff donation-details modal can be closed with the Close button, clicking outside the dialog, or Escape.
+
+V8.0.6 account-login fix: newly created Staff/Admin/Manager accounts now use the exact same scrypt password hashing routine as login and receive a non-null internal .invalid email placeholder required by existing V8 databases.
