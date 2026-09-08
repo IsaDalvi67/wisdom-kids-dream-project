@@ -75,7 +75,7 @@ export async function bootstrap(){
       await c.execute({
         sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
              VALUES(?,?,?,?,1,?,?)`,
-        args:[managerUser,null,hashPassword(managerPass),"manager",now,"SYSTEM"]
+        args:[managerUser,`${managerUser.toLowerCase()}@manager.wkdp.invalid`,hashPassword(managerPass),"manager",now,"SYSTEM"]
       });
     }
   }
@@ -92,7 +92,7 @@ export async function bootstrap(){
       await c.execute({
         sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
              VALUES(?,?,?,?,1,?,?)`,
-        args:[adminUser,null,hashPassword(adminPass),"admin",now,"SYSTEM"]
+        args:[adminUser,`${adminUser.toLowerCase()}@admin.wkdp.invalid`,hashPassword(adminPass),"admin",now,"SYSTEM"]
       });
     }
   }
