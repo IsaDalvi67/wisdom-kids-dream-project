@@ -2,6 +2,10 @@ import {db,ensureSchema,json} from "./lib/db.mjs";import {authFromEvent,requireR
 export const handler=async e=>{
  if(e.httpMethod!=="POST")return json(405,{error:"Method not allowed."});
  try{
+  const securityClient=await bootstrap();
+  await securityClient.execute(`CREATE TABLE IF NOT EXISTS security_state(id INTEGER PRIMARY KEY CHECK(id=1),mode TEXT NOT NULL DEFAULT 'normal',updated_at TEXT,updated_by TEXT)`);
+  const securityMode=await securityClient.execute(`SELECT mode FROM security_state WHERE id=1`);
+  if(securityMode.rows.length && securityMode.rows[0].mode!=="normal") return json(423,{error:"Donation verification is frozen during security recovery."});
   const a=authFromEvent(e);if(!a)return json(401,{error:"Unauthorized or expired session."});
   if(!requireRole(a,["staff","admin"]))return json(403,{error:"Account Managers cannot verify or reject donations."});
   const b=JSON.parse(e.body||"{}"),ref=String(b.donation_ref||"").trim().toUpperCase(),status=String(b.status||"");
