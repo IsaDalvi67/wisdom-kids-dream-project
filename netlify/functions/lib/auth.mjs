@@ -24,6 +24,7 @@ export function checkPassword(p,stored){
 }
 export async function bootstrap(){
   const c=await db();
+
   await c.execute(`CREATE TABLE IF NOT EXISTS staff_users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -34,6 +35,7 @@ export async function bootstrap(){
     created_at TEXT NOT NULL,
     created_by TEXT
   )`);
+
   await c.execute(`CREATE TABLE IF NOT EXISTS audit_log(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT,
@@ -46,6 +48,7 @@ export async function bootstrap(){
     details_json TEXT,
     created_at TEXT NOT NULL
   )`);
+
   await c.execute(`CREATE TABLE IF NOT EXISTS auth_codes(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     purpose TEXT,
@@ -58,25 +61,34 @@ export async function bootstrap(){
     created_at TEXT
   )`);
 
-  const countRow = await c.execute(`SELECT COUNT(*) AS n FROM staff_users`);
-  const count = Number(countRow.rows[0]?.n || 0);
+  const now = new Date().toISOString();
 
-  if(count===0){
-    const now=new Date().toISOString();
-
-    const managerUser=String(process.env.WKDP_MANAGER_USER||"").trim();
-    const managerPass=String(process.env.WKDP_MANAGER_PASSWORD||"");
-    if(managerUser && managerPass){
+  // Ensure Manager exists if env vars are configured.
+  const managerUser = String(process.env.WKDP_MANAGER_USER || "").trim();
+  const managerPass = String(process.env.WKDP_MANAGER_PASSWORD || "");
+  if(managerUser && managerPass){
+    const existingManager = await c.execute({
+      sql:`SELECT id,role FROM staff_users WHERE username=?`,
+      args:[managerUser]
+    });
+    if(!existingManager.rows.length){
       await c.execute({
         sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
              VALUES(?,?,?,?,1,?,?)`,
         args:[managerUser,null,hashPassword(managerPass),"manager",now,"SYSTEM"]
       });
     }
+  }
 
-    const adminUser=String(process.env.WKDP_STAFF_USER||"").trim();
-    const adminPass=String(process.env.WKDP_STAFF_PASSWORD||"");
-    if(adminUser && adminPass){
+  // Ensure first Admin exists if env vars are configured.
+  const adminUser = String(process.env.WKDP_STAFF_USER || "").trim();
+  const adminPass = String(process.env.WKDP_STAFF_PASSWORD || "");
+  if(adminUser && adminPass){
+    const existingAdmin = await c.execute({
+      sql:`SELECT id,role FROM staff_users WHERE username=?`,
+      args:[adminUser]
+    });
+    if(!existingAdmin.rows.length){
       await c.execute({
         sql:`INSERT INTO staff_users(username,email,password_hash,role,active,created_at,created_by)
              VALUES(?,?,?,?,1,?,?)`,

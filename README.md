@@ -27,3 +27,5 @@ The first Manager and Admin are bootstrapped only when staff_users is empty. Aft
 
 
 Bootstrap fix: the first Manager uses WKDP_MANAGER_USER + WKDP_MANAGER_PASSWORD, and the first Admin uses WKDP_STAFF_USER + WKDP_STAFF_PASSWORD. No email variables are required.
+
+Bootstrap repair: Manager and Admin bootstrap are now checked independently. If one already exists, the missing account can still be created from its Netlify environment variables.
