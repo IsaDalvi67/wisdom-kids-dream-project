@@ -31,3 +31,5 @@ Bootstrap fix: the first Manager uses WKDP_MANAGER_USER + WKDP_MANAGER_PASSWORD,
 Bootstrap repair: Manager and Admin bootstrap are now checked independently. If one already exists, the missing account can still be created from its Netlify environment variables.
 
 Login fix 8.0.4: bootstrap accounts use internal .invalid placeholder emails because the existing Turso staff_users schema requires a non-null unique email. No email verification is used.
+
+V8.0.5 UI bugfix: donor Check Status results are now visibly rendered in the white status card. The staff donation-details modal can be closed with the Close button, clicking outside the dialog, or Escape.
