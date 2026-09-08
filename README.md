@@ -1,6 +1,6 @@
 # Wisdom Kids Dream Project — V10 Final Update
 
-V10 is the final planned update of the current WKDP website series.
+V10 is the latest planned update of the current WKDP website series.
 
 ## Included
 - V9 security controls retained.
