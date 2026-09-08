@@ -1,0 +1,9 @@
+{
+  "name": "wisdom-kids-dream-project-v7",
+  "version": "7.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@libsql/client": "^0.15.15"
+  }
+}

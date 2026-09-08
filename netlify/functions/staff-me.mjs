@@ -1,0 +1,2 @@
+import {json} from "./lib/db.mjs";import {authFromEvent} from "./lib/auth.mjs";
+export const handler=async(event)=>{try{const a=authFromEvent(event);if(!a)return json(401,{error:"Unauthorized or expired session."});return json(200,{username:a.u})}catch{return json(401,{error:"Unauthorized."})}};
